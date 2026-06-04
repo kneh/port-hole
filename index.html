@@ -289,11 +289,12 @@
       ctx.fillStyle = skyGrad;
       ctx.fillRect(cx - IR*1.5, cy - IR*1.5, IR*3, IR*3);
 
-      /* parallax: horizon shifts most (finite distance), moon less (far but finite),
-         stars least (near-infinite). All shift in same direction as horizonShift. */
+      /* moon and stars sit at fixed angular elevations above the horizon.
+         The horizon shifts by horizonShift; to keep those angles constant,
+         every sky object shifts by the same horizonShift. */
       const moonLX = IR * 0.3, moonLY = -IR * 0.4;
       const moonX = cx + moonLX;
-      const moonY = cy + moonLY + horizonShift * 0.45;
+      const moonY = cy + moonLY + horizonShift;
 
       const STARS = [
         [-0.62,-0.70],[0.16,-0.82],[0.50,-0.60],[0.30,-0.30],
@@ -303,7 +304,7 @@
         const flicker = 0.35 + 0.65 * Math.sin(simT * 0.9 + sx*22 + sy*17);
         ctx.fillStyle = `rgba(210,225,255,${flicker * 0.75})`;
         ctx.beginPath();
-        ctx.arc(cx + sx*IR, cy + sy*IR + horizonShift * 0.2, 1.1, 0, Math.PI*2);
+        ctx.arc(cx + sx*IR, cy + sy*IR + horizonShift, 1.1, 0, Math.PI*2);
         ctx.fill();
       });
 
