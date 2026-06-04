@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Porthole</title>
+  <meta name="description" content="Animated porthole with roll motion simulation" />
+  <meta name="theme-color" content="#1a1410" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1410; font-family: sans-serif; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #toggle-btn {
+      position: fixed; top: 14px; right: 14px; z-index: 10;
+      background: rgba(20,15,10,0.78); border: 0.5px solid rgba(200,150,48,0.4);
+      color: rgba(200,170,100,0.9); border-radius: 8px;
+      padding: 7px 13px; font-size: 13px; cursor: pointer;
+    }
+    #panel {
+      position: fixed; top: 52px; right: 14px; z-index: 10;
+      background: rgba(14,10,6,0.92); border: 0.5px solid rgba(200,150,48,0.35);
+      border-radius: 10px; padding: 14px 16px; width: 240px;
+      transition: opacity 0.18s, transform 0.18s;
+    }
+    #panel.hidden { opacity: 0; pointer-events: none; transform: translateY(-6px); }
+    .panel-title { font-size: 11px; font-weight: 500; color: rgba(200,150,48,0.85); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
+    .panel-section { border-top: 0.5px solid rgba(200,150,48,0.15); margin-top: 10px; padding-top: 10px; }
+    .section-label { font-size: 11px; color: rgba(200,150,48,0.6); margin-bottom: 8px; }
+    .row { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+    .row label { font-size: 12px; color: rgba(200,180,140,0.75); flex: 0 0 108px; }
+    .row input[type=range] { flex: 1; accent-color: #c89030; }
+    .row .val { font-size: 12px; color: rgba(220,190,120,0.9); font-weight: 500; min-width: 38px; text-align: right; }
+    .row select { flex: 1; background: rgba(30,22,12,0.9); border: 0.5px solid rgba(200,150,48,0.3); color: rgba(220,190,120,0.9); border-radius: 5px; font-size: 12px; padding: 4px 6px; cursor: pointer; }
+    #readout { position: fixed; bottom: 14px; left: 16px; z-index: 10; font-size: 11px; color: rgba(180,210,255,0.45); pointer-events: none; line-height: 1.7; font-family: monospace; }
+    #offline-badge { position: fixed; bottom: 14px; right: 14px; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); font-size: 11px; padding: 4px 10px; border-radius: 20px; display: none; }
+    #offline-badge.visible { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <button id="toggle-btn">&#9881; settings</button>
+
+  <div id="panel">
+    <div class="panel-title">porthole settings</div>
+
+    <div class="panel-section">
+      <div class="section-label">position on vessel</div>
+      <div class="row">
+        <label>side</label>
+        <select id="side">
+          <option value="ps">PS — port side</option>
+          <option value="sb">SB — starboard</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>dist from CoG (m)</label>
+        <input type="range" id="dist" min="0" max="20" step="0.5" value="8">
+        <span class="val" id="dist-v">8.0</span>
+      </div>
+      <div class="row">
+        <label>height from CoG (m)</label>
+        <input type="range" id="height" min="-6" max="12" step="0.5" value="3">
+        <span class="val" id="height-v">3.0</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">roll motion</div>
+      <div class="row">
+        <label>period (s)</label>
+        <input type="range" id="period" min="4" max="30" step="0.5" value="12">
+        <span class="val" id="period-v">12.0</span>
+      </div>
+      <div class="row">
+        <label>amplitude (°)</label>
+        <input type="range" id="amp" min="0" max="30" step="0.5" value="10">
+        <span class="val" id="amp-v">10.0</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="readout">
+    <span id="ro-angle">roll:  0.0°</span><br>
+    <span id="ro-rate">rate:  0.0°/s</span>
+  </div>
+
+  <div id="offline-badge">offline</div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H;
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const cfg = { side: 'ps', dist: 8, height: 3, period: 12, amp: 10 };
+
+    function bindSlider(id, key) {
+      const el = document.getElementById(id);
+      const vo = document.getElementById(id + '-v');
+      el.addEventListener('input', () => {
+        cfg[key] = parseFloat(el.value);
+        if (vo) vo.textContent = parseFloat(el.value).toFixed(1);
+      });
+    }
+    bindSlider('dist',   'dist');
+    bindSlider('height', 'height');
+    bindSlider('period', 'period');
+    bindSlider('amp',    'amp');
+    document.getElementById('side').addEventListener('change', e => cfg.side = e.target.value);
+
+    const panel = document.getElementById('panel');
+    document.getElementById('toggle-btn').addEventListener('click', () => panel.classList.toggle('hidden'));
+
+    let simT = 0, lastTime = null;
+
+    function getRoll() {
+      const omega = (2 * Math.PI) / cfg.period;
+      return {
+        angle: cfg.amp * Math.sin(omega * simT),
+        rate:  cfg.amp * omega * Math.cos(omega * simT)
+      };
+    }
+
+    function drawScene({ angle, rate }) {
+      ctx.clearRect(0, 0, W, H);
+
+      /* hull wall */
+      ctx.fillStyle = '#2a1f14';
+      ctx.fillRect(0, 0, W, H);
+      for (let i = 0; i < 14; i++) {
+        const y = (i / 14) * H;
+        ctx.strokeStyle = `rgba(0,0,0,${0.07 + (i % 3) * 0.03})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(0, y);
+        ctx.bezierCurveTo(W*0.3, y+5, W*0.7, y-4, W, y+3);
+        ctx.stroke();
+      }
+
+      const cx = W / 2, cy = H / 2;
+      const OR = Math.min(W, H) * 0.36;
+      const IR = OR * 0.82;
+
+      const rollRad = angle * Math.PI / 180;
+      const sideSign = cfg.side === 'ps' ? 1 : -1;
+
+      /* vertical position of porthole relative to horizon */
+      const verticalTravel = cfg.height * Math.sin(rollRad);
+      const pixelsPerMeter = IR / 12;
+      const horizonShift = verticalTravel * pixelsPerMeter;
+      const horizonY = cy + horizonShift;
+
+      /* apparent water surface tilt from lateral acceleration */
+      const omega = (2 * Math.PI) / cfg.period;
+      const lateralAcc = -cfg.dist * omega * omega * rollRad;
+      const horizonSlope = Math.atan2(lateralAcc * sideSign, 9.81);
+
+      /* clip to porthole */
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, IR, 0, Math.PI * 2);
+      ctx.clip();
+
+      /* sky */
+      const skyGrad = ctx.createLinearGradient(cx, cy - IR*1.4, cx, horizonY + IR*0.3);
+      skyGrad.addColorStop(0, '#080f1e');
+      skyGrad.addColorStop(1, '#172f50');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(cx - IR*1.5, cy - IR*1.5, IR*3, IR*3);
+
+      /* stars */
+      const stars = [[0.18,0.1],[0.42,0.06],[0.68,0.18],[0.58,0.32],[0.12,0.38],[0.82,0.08],[0.33,0.28],[0.75,0.22],[0.5,0.14]];
+      stars.forEach(([sx, sy]) => {
+        const flicker = 0.35 + 0.65 * Math.sin(simT * 0.9 + sx*22 + sy*17);
+        ctx.fillStyle = `rgba(210,225,255,${flicker * 0.75})`;
+        ctx.beginPath();
+        ctx.arc((cx-IR)+sx*IR*2, (cy-IR*0.9)+sy*(horizonY-(cy-IR*0.9))*0.85, 1.1, 0, Math.PI*2);
+        ctx.fill();
+      });
+
+      /* moon */
+      const moonX = cx + IR*0.3, moonY = cy - IR*0.4;
+      if (moonY < horizonY - IR*0.05) {
+        const mg = ctx.createRadialGradient(moonX, moonY, 1, moonX, moonY, IR*0.11);
+        mg.addColorStop(0, 'rgba(220,235,255,0.18)');
+        mg.addColorStop(1, 'rgba(220,235,255,0)');
+        ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(moonX, moonY, IR*0.11, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#ccd8f2'; ctx.beginPath(); ctx.arc(moonX, moonY, IR*0.05, 0, Math.PI*2); ctx.fill();
+      }
+
+      /* water */
+      const waterGrad = ctx.createLinearGradient(cx, horizonY, cx, cy + IR*1.4);
+      waterGrad.addColorStop(0, '#0c2540');
+      waterGrad.addColorStop(1, '#060f1a');
+      ctx.fillStyle = waterGrad;
+      ctx.fillRect(cx - IR*1.5, horizonY - 2, IR*3, IR*3);
+
+      /* waves */
+      for (let i = 0; i < 6; i++) {
+        const phase = (i / 6) * Math.PI * 2;
+        const speed = 0.32 + i * 0.07;
+        const wamp  = 3 + i * 1.6;
+        const yBase = horizonY + 10 + i * ((cy + IR*1.1 - horizonY - 16) / 6);
+        ctx.beginPath();
+        ctx.moveTo(cx - IR*1.5, yBase);
+        for (let x = cx - IR*1.5; x <= cx + IR*1.5; x += 3) {
+          const yw = yBase
+            + (x - cx) * horizonSlope
+            + Math.sin((x-cx)*0.016 + simT*speed + phase) * wamp
+            + Math.sin((x-cx)*0.028 - simT*speed*0.5 + phase) * wamp * 0.45;
+          ctx.lineTo(x, yw);
+        }
+        ctx.lineTo(cx+IR*1.5, cy+IR*1.5);
+        ctx.lineTo(cx-IR*1.5, cy+IR*1.5);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(18,65,125,${0.06 + i*0.04})`; ctx.fill();
+        ctx.strokeStyle = `rgba(65,135,210,${0.05 + i*0.03})`; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(cx - IR*1.5, yBase);
+        for (let x = cx - IR*1.5; x <= cx + IR*1.5; x += 3) {
+          const yw = yBase
+            + (x - cx) * horizonSlope
+            + Math.sin((x-cx)*0.016 + simT*speed + phase) * wamp
+            + Math.sin((x-cx)*0.028 - simT*speed*0.5 + phase) * wamp * 0.45;
+          ctx.lineTo(x, yw);
+        }
+        ctx.stroke();
+      }
+
+      /* moon reflection */
+      const rg = ctx.createLinearGradient(moonX, horizonY, moonX, cy+IR);
+      rg.addColorStop(0, 'rgba(160,195,255,0.10)');
+      rg.addColorStop(1, 'rgba(160,195,255,0)');
+      ctx.fillStyle = rg;
+      ctx.beginPath();
+      ctx.moveTo(moonX-7, horizonY); ctx.lineTo(moonX+7, horizonY);
+      ctx.lineTo(moonX+28, cy+IR);  ctx.lineTo(moonX-28, cy+IR);
+      ctx.closePath(); ctx.fill();
+
+      ctx.restore(); /* end porthole clip */
+
+      /* glass sheen */
+      const sheen = ctx.createRadialGradient(cx-IR*0.28, cy-IR*0.28, IR*0.08, cx, cy, IR);
+      sheen.addColorStop(0, 'rgba(200,225,255,0.06)');
+      sheen.addColorStop(1, 'rgba(200,225,255,0)');
+      ctx.fillStyle = sheen; ctx.beginPath(); ctx.arc(cx, cy, IR, 0, Math.PI*2); ctx.fill();
+
+      /* brass ring */
+      const bg = ctx.createRadialGradient(cx-OR*0.18, cy-OR*0.18, OR*0.55, cx, cy, OR);
+      bg.addColorStop(0, '#cc9a2c'); bg.addColorStop(0.38, '#aa7c1e');
+      bg.addColorStop(0.7, '#8c6218'); bg.addColorStop(1, '#6c4a10');
+      ctx.strokeStyle = bg; ctx.lineWidth = OR - IR + 2;
+      ctx.beginPath(); ctx.arc(cx, cy, (OR+IR)/2, 0, Math.PI*2); ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(215,172,62,0.45)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cx, cy, IR+1, 0, Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,0,0,0.42)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, OR-1, 0, Math.PI*2); ctx.stroke();
+
+      /* bolts */
+      const boltR = (OR + IR) / 2;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI*2 - Math.PI/8;
+        const bx = cx + Math.cos(a)*boltR, by = cy + Math.sin(a)*boltR;
+        ctx.fillStyle = '#7c5a12'; ctx.beginPath(); ctx.arc(bx, by, 4.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#ca9232'; ctx.beginPath(); ctx.arc(bx-1, by-1, 2.5, 0, Math.PI*2); ctx.fill();
+      }
+
+      /* hinges */
+      function hinge(hx, hy) {
+        ctx.fillStyle = '#8c6018'; ctx.beginPath(); ctx.roundRect(hx-7, hy-18, 14, 36, 3); ctx.fill();
+        ctx.fillStyle = '#ca9232';
+        ctx.beginPath(); ctx.arc(hx, hy-8, 3.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hx, hy+8, 3.5, 0, Math.PI*2); ctx.fill();
+      }
+      hinge(cx - OR - 4, cy);
+      hinge(cx + OR + 4, cy);
+    }
+
+    function frame(ts) {
+      if (!lastTime) lastTime = ts;
+      const dt = Math.min((ts - lastTime) / 1000, 0.05);
+      lastTime = ts;
+      simT += dt;
+
+      const roll = getRoll();
+      drawScene(roll);
+
+      document.getElementById('ro-angle').textContent = `roll:  ${roll.angle >= 0 ? '+' : ''}${roll.angle.toFixed(1)}°`;
+      document.getElementById('ro-rate').textContent  = `rate:  ${roll.rate  >= 0 ? '+' : ''}${roll.rate.toFixed(2)}°/s`;
+
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    /* offline indicator */
+    const badge = document.getElementById('offline-badge');
+    function updateOnline() { badge.classList.toggle('visible', !navigator.onLine); }
+    window.addEventListener('online',  updateOnline);
+    window.addEventListener('offline', updateOnline);
+    updateOnline();
+
+    /* service worker */
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(console.warn);
+    }
+  </script>
+</body>
+</html>
