@@ -33,6 +33,7 @@
     .row input[type=range] { flex: 1; min-width: 0; accent-color: #c89030; }
     .row .val { font-size: 12px; color: rgba(220,190,120,0.9); font-weight: 500; width: 34px; flex-shrink: 0; text-align: right; }
     .row select { flex: 1; min-width: 0; background: rgba(30,22,12,0.9); border: 0.5px solid rgba(200,150,48,0.3); color: rgba(220,190,120,0.9); border-radius: 5px; font-size: 12px; padding: 4px 6px; cursor: pointer; }
+    .yacht-info { font-size: 11px; color: rgba(195,160,75,0.6); margin: 3px 0 2px; letter-spacing: 0.02em; }
     #readout { position: fixed; bottom: 14px; left: 16px; z-index: 10; font-size: 11px; color: rgba(180,210,255,0.45); pointer-events: none; line-height: 1.7; font-family: monospace; }
     #offline-badge { position: fixed; bottom: 14px; right: 14px; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); font-size: 11px; padding: 4px 10px; border-radius: 20px; display: none; }
     #offline-badge.visible { display: block; }
@@ -45,6 +46,19 @@
 
   <div id="panel" class="hidden">
     <div class="panel-title">porthole settings</div>
+
+    <div class="panel-section">
+      <div class="section-label">vessel preset</div>
+      <div class="row">
+        <label>yacht</label>
+        <select id="yacht-sel"><option value="">— choose yacht —</option></select>
+      </div>
+      <div class="row">
+        <label>deck</label>
+        <select id="deck-sel" disabled><option value="">—</option></select>
+      </div>
+      <div id="yacht-info" class="yacht-info"></div>
+    </div>
 
     <div class="panel-section">
       <div class="section-label">position on vessel</div>
@@ -84,7 +98,8 @@
 
   <div id="readout">
     <span id="ro-angle">roll:  0.0°</span><br>
-    <span id="ro-rate">rate:  0.0°/s</span>
+    <span id="ro-rate">rate:  0.0°/s</span><br>
+    <span id="ro-gm">GM:    —</span>
   </div>
 
   <div id="offline-badge">offline</div>
@@ -101,7 +116,7 @@
     resize();
     window.addEventListener('resize', resize);
 
-    const cfg = { side: 'ps', dist: 8, height: 3, period: 12, amp: 10 };
+    const cfg = { side: 'ps', dist: 8, height: 3, period: 12, amp: 10, beam: null };
 
     function bindSlider(id, key) {
       const el = document.getElementById(id);
@@ -116,6 +131,82 @@
     bindSlider('period', 'period');
     bindSlider('amp',    'amp');
     document.getElementById('side').addEventListener('change', e => cfg.side = e.target.value);
+
+    /* ── Yacht presets ─────────────────────────────────────────────── */
+    const YACHTS = [
+      { name:'Azzam (2013)',           beam:20.8, gt:13136,  deckCount:3 },
+      { name:'Eclipse (2010)',          beam:21.5, gt:13564,  deckCount:3 },
+      { name:'Dilbar (2016)',           beam:23.6, gt:15917,  deckCount:3 },
+      { name:'Al Said (2008)',          beam:23.0, gt:15850,  deckCount:5 },
+      { name:'Sailing Yacht A (2017)',  beam:24.0, gt:12700,  deckCount:3 },
+      { name:'Rising Sun (2004)',       beam:21.0, gt:8400,   deckCount:4 },
+      { name:'Octopus (2003)',          beam:22.0, gt:6900,   deckCount:3 },
+      { name:'Lady Moura (1990)',       beam:15.2, gt:3200,   deckCount:5 },
+      { name:'Serene (2011)',           beam:17.2, gt:8858,   deckCount:3 },
+      { name:'Topaz (2012)',            beam:16.6, gt:11589,  deckCount:4 },
+    ];
+
+    const DECK_NAMES_BY_COUNT = {
+      3: ['Main Deck','Upper Deck','Bridge Deck'],
+      4: ['Main Deck','Upper Deck','Bridge Deck','Sun Deck'],
+      5: ['Lower Deck','Main Deck','Upper Deck','Bridge Deck','Sun Deck'],
+    };
+    const DECK_BASE = 2.5, DECK_STEP = 3.0;
+
+    function deckHeight(i) { return Math.min(12, DECK_BASE + i * DECK_STEP); }
+
+    function setSlider(id, value) {
+      const el = document.getElementById(id);
+      const v = Math.max(parseFloat(el.min), Math.min(parseFloat(el.max), value));
+      el.value = v;
+      const vo = document.getElementById(id + '-v');
+      if (vo) vo.textContent = v.toFixed(1);
+      return v;
+    }
+
+    const yachtSel  = document.getElementById('yacht-sel');
+    const deckSel   = document.getElementById('deck-sel');
+    const yachtInfo = document.getElementById('yacht-info');
+
+    YACHTS.forEach((y, i) => {
+      const opt = document.createElement('option');
+      opt.value = i; opt.textContent = y.name;
+      yachtSel.appendChild(opt);
+    });
+
+    yachtSel.addEventListener('change', function () {
+      const idx = parseInt(this.value);
+      if (isNaN(idx)) {
+        deckSel.disabled = true;
+        deckSel.innerHTML = '<option value="">—</option>';
+        yachtInfo.textContent = '';
+        return;
+      }
+      const y = YACHTS[idx];
+      yachtInfo.textContent = `beam ${y.beam} m  ·  ${y.gt.toLocaleString()} GT  ·  ${y.deckCount} decks`;
+      const names = DECK_NAMES_BY_COUNT[y.deckCount] || [];
+      deckSel.innerHTML = '';
+      deckSel.disabled = false;
+      for (let i = 0; i < y.deckCount; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = names[i] || `Deck ${i + 1}`;
+        deckSel.appendChild(opt);
+      }
+      applyPreset(y, 0);
+    });
+
+    deckSel.addEventListener('change', function () {
+      const yIdx = parseInt(yachtSel.value);
+      if (isNaN(yIdx)) return;
+      applyPreset(YACHTS[yIdx], parseInt(this.value));
+    });
+
+    function applyPreset(yacht, deckIdx) {
+      cfg.beam   = yacht.beam;
+      cfg.dist   = setSlider('dist',   yacht.beam / 2);
+      cfg.height = setSlider('height', deckHeight(deckIdx));
+    }
 
     const panel = document.getElementById('panel');
     document.getElementById('toggle-btn').addEventListener('click', () => panel.classList.toggle('hidden'));
@@ -295,6 +386,8 @@
 
       document.getElementById('ro-angle').textContent = `roll:  ${roll.angle >= 0 ? '+' : ''}${roll.angle.toFixed(1)}°`;
       document.getElementById('ro-rate').textContent  = `rate:  ${roll.rate  >= 0 ? '+' : ''}${roll.rate.toFixed(2)}°/s`;
+      const gm = cfg.beam ? Math.pow((0.80 * cfg.beam) / cfg.period, 2) : null;
+      document.getElementById('ro-gm').textContent = gm !== null ? `GM:    ${gm.toFixed(2)} m` : 'GM:    —';
 
       requestAnimationFrame(frame);
     }
