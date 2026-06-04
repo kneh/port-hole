@@ -21,7 +21,7 @@
     #panel {
       position: fixed; top: 52px; right: 14px; z-index: 10;
       background: rgba(14,10,6,0.92); border: 0.5px solid rgba(200,150,48,0.35);
-      border-radius: 10px; padding: 14px 16px; width: 240px;
+      border-radius: 10px; padding: 14px 16px; width: 280px;
       transition: opacity 0.18s, transform 0.18s;
     }
     #panel.hidden { opacity: 0; pointer-events: none; transform: translateY(-6px); }
@@ -29,10 +29,10 @@
     .panel-section { border-top: 0.5px solid rgba(200,150,48,0.15); margin-top: 10px; padding-top: 10px; }
     .section-label { font-size: 11px; color: rgba(200,150,48,0.6); margin-bottom: 8px; }
     .row { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
-    .row label { font-size: 12px; color: rgba(200,180,140,0.75); flex: 0 0 108px; }
-    .row input[type=range] { flex: 1; accent-color: #c89030; }
-    .row .val { font-size: 12px; color: rgba(220,190,120,0.9); font-weight: 500; min-width: 38px; text-align: right; }
-    .row select { flex: 1; background: rgba(30,22,12,0.9); border: 0.5px solid rgba(200,150,48,0.3); color: rgba(220,190,120,0.9); border-radius: 5px; font-size: 12px; padding: 4px 6px; cursor: pointer; }
+    .row label { font-size: 12px; color: rgba(200,180,140,0.75); flex: 0 0 100px; }
+    .row input[type=range] { flex: 1; min-width: 0; accent-color: #c89030; }
+    .row .val { font-size: 12px; color: rgba(220,190,120,0.9); font-weight: 500; width: 34px; flex-shrink: 0; text-align: right; }
+    .row select { flex: 1; min-width: 0; background: rgba(30,22,12,0.9); border: 0.5px solid rgba(200,150,48,0.3); color: rgba(220,190,120,0.9); border-radius: 5px; font-size: 12px; padding: 4px 6px; cursor: pointer; }
     #readout { position: fixed; bottom: 14px; left: 16px; z-index: 10; font-size: 11px; color: rgba(180,210,255,0.45); pointer-events: none; line-height: 1.7; font-family: monospace; }
     #offline-badge { position: fixed; bottom: 14px; right: 14px; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); font-size: 11px; padding: 4px 10px; border-radius: 20px; display: none; }
     #offline-badge.visible { display: block; }
@@ -43,7 +43,7 @@
 
   <button id="toggle-btn">&#9881; settings</button>
 
-  <div id="panel">
+  <div id="panel" class="hidden">
     <div class="panel-title">porthole settings</div>
 
     <div class="panel-section">
