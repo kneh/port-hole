@@ -266,11 +266,9 @@
       const rollRad = angle * Math.PI / 180;
       const sideSign = cfg.side === 'ps' ? 1 : -1;
 
-      /* vertical position of porthole relative to horizon.
-         Dominant term is outboard offset × sin(roll), not height × sin(roll). */
-      const verticalTravel = cfg.dist * Math.sin(rollRad) * sideSign;
-      const pixelsPerMeter = IR / 12;
-      const horizonShift = verticalTravel * pixelsPerMeter;
+      /* the porthole tilts with roll; horizon drops sin(roll)×IR on the high side,
+         rises by the same amount on the low side */
+      const horizonShift = Math.sin(rollRad * sideSign) * IR;
       const horizonY = cy + horizonShift;
 
       /* apparent water surface tilt from lateral acceleration */
@@ -310,8 +308,9 @@
         ctx.fill();
       });
 
-      /* moon */
-      if (moonY < horizonY - IR*0.05) {
+      /* moon — fixed in the port-side sky; not visible through a starboard porthole */
+      const moonVisible = cfg.side === 'ps' && moonY < horizonY - IR*0.05;
+      if (moonVisible) {
         const mg = ctx.createRadialGradient(moonX, moonY, 1, moonX, moonY, IR*0.11);
         mg.addColorStop(0, 'rgba(220,235,255,0.18)');
         mg.addColorStop(1, 'rgba(220,235,255,0)');
@@ -357,15 +356,17 @@
         ctx.stroke();
       }
 
-      /* moon reflection */
-      const rg = ctx.createLinearGradient(moonX, horizonY, moonX, cy+IR);
-      rg.addColorStop(0, 'rgba(160,195,255,0.10)');
-      rg.addColorStop(1, 'rgba(160,195,255,0)');
-      ctx.fillStyle = rg;
-      ctx.beginPath();
-      ctx.moveTo(moonX-7, horizonY); ctx.lineTo(moonX+7, horizonY);
-      ctx.lineTo(moonX+28, cy+IR);  ctx.lineTo(moonX-28, cy+IR);
-      ctx.closePath(); ctx.fill();
+      /* moon reflection — only when moon is above horizon */
+      if (moonVisible) {
+        const rg = ctx.createLinearGradient(moonX, horizonY, moonX, cy+IR);
+        rg.addColorStop(0, 'rgba(160,195,255,0.10)');
+        rg.addColorStop(1, 'rgba(160,195,255,0)');
+        ctx.fillStyle = rg;
+        ctx.beginPath();
+        ctx.moveTo(moonX-7, horizonY); ctx.lineTo(moonX+7, horizonY);
+        ctx.lineTo(moonX+28, cy+IR);  ctx.lineTo(moonX-28, cy+IR);
+        ctx.closePath(); ctx.fill();
+      }
 
       ctx.restore(); /* end porthole clip */
 
