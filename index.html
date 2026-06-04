@@ -266,8 +266,9 @@
       const rollRad = angle * Math.PI / 180;
       const sideSign = cfg.side === 'ps' ? 1 : -1;
 
-      /* vertical position of porthole relative to horizon */
-      const verticalTravel = cfg.height * Math.sin(rollRad);
+      /* vertical position of porthole relative to horizon.
+         Dominant term is outboard offset × sin(roll), not height × sin(roll). */
+      const verticalTravel = cfg.dist * Math.sin(rollRad) * sideSign;
       const pixelsPerMeter = IR / 12;
       const horizonShift = verticalTravel * pixelsPerMeter;
       const horizonY = cy + horizonShift;
