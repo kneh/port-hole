@@ -290,21 +290,22 @@
       ctx.fillStyle = skyGrad;
       ctx.fillRect(cx - IR*1.5, cy - IR*1.5, IR*3, IR*3);
 
-      /* celestial objects: horizontal shear proportional to roll — no vertical component */
+      /* celestial objects: pure vertical shift — stars near horizon shift most (cos α factor),
+         stars near zenith shift least; no horizontal component */
       const moonLX = IR * 0.3, moonLY = -IR * 0.4;
-      const moonX = cx + moonLX - rollRad * moonLY;
-      const moonY = cy + moonLY;
+      const moonX = cx + moonLX;
+      const moonY = cy + moonLY + horizonShift * Math.sqrt(1 - (moonLY / IR) * (moonLY / IR));
 
-      /* stars — each shifts left/right by rollRad × its height above centre; y stays fixed */
       const STARS = [
         [-0.62,-0.70],[0.16,-0.82],[0.50,-0.60],[0.30,-0.30],
         [-0.76,-0.36],[0.74,-0.76],[-0.26,-0.50],[0.68,-0.42],[0.08,-0.68]
       ];
       STARS.forEach(([sx, sy]) => {
+        const shiftY = horizonShift * Math.sqrt(1 - sy * sy);
         const flicker = 0.35 + 0.65 * Math.sin(simT * 0.9 + sx*22 + sy*17);
         ctx.fillStyle = `rgba(210,225,255,${flicker * 0.75})`;
         ctx.beginPath();
-        ctx.arc(cx + sx*IR - rollRad * sy*IR, cy + sy*IR, 1.1, 0, Math.PI*2);
+        ctx.arc(cx + sx*IR, cy + sy*IR + shiftY, 1.1, 0, Math.PI*2);
         ctx.fill();
       });
 
