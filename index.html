@@ -14,9 +14,14 @@
     canvas { display: block; width: 100%; height: 100%; }
     #toggle-btn {
       position: fixed; top: 14px; right: 14px; z-index: 10;
-      background: rgba(20,15,10,0.78); border: 0.5px solid rgba(200,150,48,0.4);
-      color: rgba(200,170,100,0.9); border-radius: 8px;
-      padding: 7px 13px; font-size: 13px; cursor: pointer;
+      background: rgba(20,15,10,0.38); border: 0.5px solid rgba(200,150,48,0.14);
+      color: rgba(200,170,100,0.38); border-radius: 6px;
+      padding: 5px 9px; font-size: 19px; line-height: 1; cursor: pointer;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    #toggle-btn:hover {
+      color: rgba(200,170,100,0.82); background: rgba(20,15,10,0.80);
+      border-color: rgba(200,150,48,0.38);
     }
     #panel {
       position: fixed; top: 52px; right: 14px; z-index: 10;
@@ -42,7 +47,7 @@
 <body>
   <canvas id="canvas"></canvas>
 
-  <button id="toggle-btn">&#9881; settings</button>
+  <button id="toggle-btn">&#9776;</button>
 
   <div id="panel" class="hidden">
     <div class="panel-title">porthole settings</div>
@@ -93,13 +98,26 @@
         <input type="range" id="amp" min="0" max="30" step="0.5" value="10">
         <span class="val" id="amp-v">10.0</span>
       </div>
+      <div class="row" style="margin-bottom:2px">
+        <label>est. GM (m)</label>
+        <span style="flex:1"></span>
+        <span class="val" id="panel-gm">—</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">display</div>
+      <div class="row" style="margin-bottom:0">
+        <label>roll readout</label>
+        <span style="flex:1"></span>
+        <input type="checkbox" id="show-readout" checked style="accent-color:#c89030;width:15px;height:15px;cursor:pointer;flex-shrink:0;">
+      </div>
     </div>
   </div>
 
   <div id="readout">
     <span id="ro-angle">roll:  0.0°</span><br>
-    <span id="ro-rate">rate:  0.0°/s</span><br>
-    <span id="ro-gm">GM:    —</span>
+    <span id="ro-rate">rate:  0.0°/s</span>
   </div>
 
   <div id="offline-badge">offline</div>
@@ -208,6 +226,11 @@
       cfg.height = setSlider('height', deckHeight(deckIdx));
     }
 
+    const readout = document.getElementById('readout');
+    document.getElementById('show-readout').addEventListener('change', function () {
+      readout.style.display = this.checked ? '' : 'none';
+    });
+
     const panel = document.getElementById('panel');
     document.getElementById('toggle-btn').addEventListener('click', () => panel.classList.toggle('hidden'));
 
@@ -267,25 +290,40 @@
       ctx.fillStyle = skyGrad;
       ctx.fillRect(cx - IR*1.5, cy - IR*1.5, IR*3, IR*3);
 
-      /* stars */
-      const stars = [[0.18,0.1],[0.42,0.06],[0.68,0.18],[0.58,0.32],[0.12,0.38],[0.82,0.08],[0.33,0.28],[0.75,0.22],[0.5,0.14]];
-      stars.forEach(([sx, sy]) => {
+      /* celestial objects counter-rotate with ship roll so they stay fixed in space */
+      const moonLX = IR * 0.3, moonLY = -IR * 0.4;
+      const cr = Math.cos(-rollRad), sr = Math.sin(-rollRad);
+      const moonX = cx + moonLX * cr - moonLY * sr;
+      const moonY = cy + moonLX * sr + moonLY * cr;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-rollRad);
+      ctx.translate(-cx, -cy);
+
+      /* stars — fixed angular positions in sky (IR-relative offsets from porthole centre) */
+      const STARS = [
+        [-0.62,-0.70],[0.16,-0.82],[0.50,-0.60],[0.30,-0.30],
+        [-0.76,-0.36],[0.74,-0.76],[-0.26,-0.50],[0.68,-0.42],[0.08,-0.68]
+      ];
+      STARS.forEach(([sx, sy]) => {
         const flicker = 0.35 + 0.65 * Math.sin(simT * 0.9 + sx*22 + sy*17);
         ctx.fillStyle = `rgba(210,225,255,${flicker * 0.75})`;
         ctx.beginPath();
-        ctx.arc((cx-IR)+sx*IR*2, (cy-IR*0.9)+sy*(horizonY-(cy-IR*0.9))*0.85, 1.1, 0, Math.PI*2);
+        ctx.arc(cx + sx*IR, cy + sy*IR, 1.1, 0, Math.PI*2);
         ctx.fill();
       });
 
-      /* moon */
-      const moonX = cx + IR*0.3, moonY = cy - IR*0.4;
+      /* moon — drawn at local (pre-rotation) position; screen position is moonX/moonY */
       if (moonY < horizonY - IR*0.05) {
-        const mg = ctx.createRadialGradient(moonX, moonY, 1, moonX, moonY, IR*0.11);
+        const mg = ctx.createRadialGradient(cx+moonLX, cy+moonLY, 1, cx+moonLX, cy+moonLY, IR*0.11);
         mg.addColorStop(0, 'rgba(220,235,255,0.18)');
         mg.addColorStop(1, 'rgba(220,235,255,0)');
-        ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(moonX, moonY, IR*0.11, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#ccd8f2'; ctx.beginPath(); ctx.arc(moonX, moonY, IR*0.05, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(cx+moonLX, cy+moonLY, IR*0.11, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#ccd8f2'; ctx.beginPath(); ctx.arc(cx+moonLX, cy+moonLY, IR*0.05, 0, Math.PI*2); ctx.fill();
       }
+
+      ctx.restore(); /* end celestial rotation */
 
       /* water */
       const waterGrad = ctx.createLinearGradient(cx, horizonY, cx, cy + IR*1.4);
@@ -387,7 +425,7 @@
       document.getElementById('ro-angle').textContent = `roll:  ${roll.angle >= 0 ? '+' : ''}${roll.angle.toFixed(1)}°`;
       document.getElementById('ro-rate').textContent  = `rate:  ${roll.rate  >= 0 ? '+' : ''}${roll.rate.toFixed(2)}°/s`;
       const gm = cfg.beam ? Math.pow((0.80 * cfg.beam) / cfg.period, 2) : null;
-      document.getElementById('ro-gm').textContent = gm !== null ? `GM:    ${gm.toFixed(2)} m` : 'GM:    —';
+      document.getElementById('panel-gm').textContent = gm !== null ? gm.toFixed(2) : '—';
 
       requestAnimationFrame(frame);
     }
