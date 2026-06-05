@@ -81,7 +81,7 @@
       </div>
       <div class="row">
         <label>height from CoG (m)</label>
-        <input type="range" id="height" min="-6" max="12" step="0.5" value="3">
+        <input type="range" id="height" min="-6" max="25" step="0.5" value="3">
         <span class="val" id="height-v">3.0</span>
       </div>
     </div>
@@ -152,26 +152,30 @@
 
     /* ── Yacht presets ─────────────────────────────────────────────── */
     const YACHTS = [
-      { name:'Azzam (2013)',           beam:20.8, gt:13136,  deckCount:3 },
-      { name:'Eclipse (2010)',          beam:21.5, gt:13564,  deckCount:3 },
-      { name:'Dilbar (2016)',           beam:23.6, gt:15917,  deckCount:3 },
-      { name:'Al Said (2008)',          beam:23.0, gt:15850,  deckCount:5 },
-      { name:'Sailing Yacht A (2017)',  beam:24.0, gt:12700,  deckCount:3 },
-      { name:'Rising Sun (2004)',       beam:21.0, gt:8400,   deckCount:4 },
-      { name:'Octopus (2003)',          beam:22.0, gt:6900,   deckCount:3 },
-      { name:'Lady Moura (1990)',       beam:15.2, gt:3200,   deckCount:5 },
-      { name:'Serene (2011)',           beam:17.2, gt:8858,   deckCount:3 },
-      { name:'Topaz (2012)',            beam:16.6, gt:11589,  deckCount:4 },
+      { name:'Azzam (2013)',           beam:20.8, gt:13136,  deckCount:5 },
+      { name:'Eclipse (2010)',          beam:22.4, gt:13564,  deckCount:9 },
+      { name:'Dilbar (2016)',           beam:23.5, gt:15917,  deckCount:7 },
+      { name:'Al Said (2008)',          beam:24.0, gt:15850,  deckCount:6 },
+      { name:'Sailing Yacht A (2017)',  beam:24.8, gt:12558,  deckCount:7 },
+      { name:'Rising Sun (2004)',       beam:19.0, gt:7841,   deckCount:5 },
+      { name:'Octopus (2003)',          beam:21.0, gt:9932,   deckCount:8 },
+      { name:'Lady Moura (1990)',       beam:18.5, gt:6539,   deckCount:7 },
+      { name:'Serene (2011)',           beam:18.6, gt:8231,   deckCount:7 },
+      { name:'Topaz (2012)',            beam:21.5, gt:12532,  deckCount:8 },
     ];
 
     const DECK_NAMES_BY_COUNT = {
       3: ['Main Deck','Upper Deck','Bridge Deck'],
       4: ['Main Deck','Upper Deck','Bridge Deck','Sun Deck'],
       5: ['Lower Deck','Main Deck','Upper Deck','Bridge Deck','Sun Deck'],
+      6: ['Lower Deck','Main Deck','Upper Deck','Bridge Deck','Sun Deck','Observation Deck'],
+      7: ['Lower Deck','Main Deck','Upper Deck','Bridge Deck',"Owner's Deck",'Sun Deck','Observation Deck'],
+      8: ['Lower Deck','Main Deck','Upper Deck','Bridge Deck',"Owner's Deck",'Sky Deck','Sun Deck','Observation Deck'],
+      9: ['Lower Deck','Main Deck','Upper Deck','Bridge Deck',"Owner's Deck",'Sky Deck','Sun Deck','Observation Deck','Heli Deck'],
     };
     const DECK_BASE = 2.5, DECK_STEP = 3.0;
 
-    function deckHeight(i) { return Math.min(12, DECK_BASE + i * DECK_STEP); }
+    function deckHeight(i) { return DECK_BASE + i * DECK_STEP; }
 
     function setSlider(id, value) {
       const el = document.getElementById(id);
