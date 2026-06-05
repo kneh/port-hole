@@ -107,10 +107,15 @@
 
     <div class="panel-section">
       <div class="section-label">display</div>
-      <div class="row" style="margin-bottom:0">
+      <div class="row">
         <label>roll readout</label>
         <span style="flex:1"></span>
         <input type="checkbox" id="show-readout" style="accent-color:#c89030;width:15px;height:15px;cursor:pointer;flex-shrink:0;">
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <label>transparent bg</label>
+        <span style="flex:1"></span>
+        <input type="checkbox" id="transparent-bg" style="accent-color:#c89030;width:15px;height:15px;cursor:pointer;flex-shrink:0;">
       </div>
     </div>
   </div>
@@ -240,6 +245,13 @@
       readout.style.display = this.checked ? '' : 'none';
     });
 
+    let transparentBg = false;
+    document.getElementById('transparent-bg').addEventListener('change', function () {
+      transparentBg = this.checked;
+      document.body.style.background = this.checked ? 'transparent' : '';
+      document.documentElement.style.background = this.checked ? 'transparent' : '';
+    });
+
     const panel = document.getElementById('panel');
     document.getElementById('toggle-btn').addEventListener('click', () => panel.classList.toggle('hidden'));
 
@@ -256,16 +268,18 @@
     function drawScene({ angle, rate }) {
       ctx.clearRect(0, 0, W, H);
 
-      /* hull wall */
-      ctx.fillStyle = '#2a1f14';
-      ctx.fillRect(0, 0, W, H);
-      for (let i = 0; i < 14; i++) {
-        const y = (i / 14) * H;
-        ctx.strokeStyle = `rgba(0,0,0,${0.07 + (i % 3) * 0.03})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(0, y);
-        ctx.bezierCurveTo(W*0.3, y+5, W*0.7, y-4, W, y+3);
-        ctx.stroke();
+      /* hull wall — skipped in transparent-bg mode */
+      if (!transparentBg) {
+        ctx.fillStyle = '#2a1f14';
+        ctx.fillRect(0, 0, W, H);
+        for (let i = 0; i < 14; i++) {
+          const y = (i / 14) * H;
+          ctx.strokeStyle = `rgba(0,0,0,${0.07 + (i % 3) * 0.03})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(0, y);
+          ctx.bezierCurveTo(W*0.3, y+5, W*0.7, y-4, W, y+3);
+          ctx.stroke();
+        }
       }
 
       const cx = W / 2, cy = H / 2;
