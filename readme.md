@@ -132,16 +132,7 @@ GitHub Pages redeploys within ~60 seconds. If users are cached on an old version
 - [ ] Heave motion (vertical displacement)
 - [ ] Daytime sky variant (sun, clouds)
 - [ ] Persist settings to localStorage across sessions
-- [ ] Accept live motion data over WebSocket instead of simulated sine wave
 
-
----
-
-## Tech context
-
-Built during a conversation exploring PWA architecture for industrial marine vessel tooling (stabilizers, HPU systems). The porthole is a standalone demo; the motion physics pattern (sinusoidal roll → viewport transform) is intended as a reusable component for future HMI screens.
-
-The broader project context: Beckhoff TwinCAT 3 / EtherCAT systems, JMobile HMI, Modbus — this PWA layer sits on top as a web-based companion display, not a replacement for the PLC.
 
 ---
 
