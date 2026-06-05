@@ -291,12 +291,14 @@
     const toggleBtn = document.getElementById('toggle-btn');
     document.getElementById('toggle-btn').addEventListener('click', () => panel.classList.toggle('hidden'));
 
-    /* Show menu button on canvas hover; always show when panel is open */
+    /* Show menu button on canvas/button/panel hover; always show when panel is open */
     let hideTimer;
     const updateButtonVisibility = () => {
       const panelOpen = !panel.classList.contains('hidden');
       const overCanvas = canvas.matches(':hover');
-      if (panelOpen || overCanvas) {
+      const overButton = toggleBtn.matches(':hover');
+      const overPanel = panel.matches(':hover');
+      if (panelOpen || overCanvas || overButton || overPanel) {
         clearTimeout(hideTimer);
         toggleBtn.classList.add('visible');
       } else {
@@ -307,6 +309,10 @@
     };
     canvas.addEventListener('mouseenter', updateButtonVisibility);
     canvas.addEventListener('mouseleave', updateButtonVisibility);
+    toggleBtn.addEventListener('mouseenter', updateButtonVisibility);
+    toggleBtn.addEventListener('mouseleave', updateButtonVisibility);
+    panel.addEventListener('mouseenter', updateButtonVisibility);
+    panel.addEventListener('mouseleave', updateButtonVisibility);
     toggleBtn.addEventListener('click', () => {
       panel.classList.toggle('hidden');
       setTimeout(updateButtonVisibility, 0);
