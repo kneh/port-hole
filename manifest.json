@@ -4,6 +4,7 @@
   "description": "Animated porthole with roll motion simulation",
   "start_url": ".",
   "display": "standalone",
+  "display_override": ["window-controls-overlay"],
   "background_color": "#1a1410",
   "theme_color": "#1a1410",
   "orientation": "any",
