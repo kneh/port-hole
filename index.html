@@ -138,6 +138,9 @@
         <span style="flex:1"></span>
         <input type="checkbox" id="transparent-bg" style="accent-color:#c89030;width:15px;height:15px;cursor:pointer;flex-shrink:0;">
       </div>
+      <div class="row" id="exit-app-row" style="margin-bottom:0;display:none;margin-top:8px;padding-top:8px;border-top:0.5px solid rgba(200,150,48,0.15);">
+        <button id="exit-app-btn" style="flex:1;background:rgba(200,80,80,0.2);border:0.5px solid rgba(200,80,80,0.35);color:rgba(220,120,120,0.9);border-radius:5px;padding:6px;font-size:12px;cursor:pointer;">Exit App</button>
+      </div>
     </div>
   </div>
 
@@ -274,8 +277,9 @@
       document.documentElement.style.background = 'transparent';
       document.getElementById('transparent-bg').checked = true;
       document.getElementById('close-btn').style.display = '';
+      document.getElementById('exit-app-row').style.display = '';
+      document.getElementById('exit-app-btn').addEventListener('click', () => window.close());
     }
-    document.getElementById('close-btn').addEventListener('click', () => window.close());
 
     document.getElementById('transparent-bg').addEventListener('change', function () {
       transparentBg = this.checked;
@@ -287,27 +291,25 @@
     const toggleBtn = document.getElementById('toggle-btn');
     document.getElementById('toggle-btn').addEventListener('click', () => panel.classList.toggle('hidden'));
 
-    /* Show menu button on canvas hover; hide after delay unless user reaches button/panel */
+    /* Show menu button on canvas hover; always show when panel is open */
     let hideTimer;
-    canvas.addEventListener('mouseenter', () => {
-      clearTimeout(hideTimer);
-      toggleBtn.classList.add('visible');
-    });
-    canvas.addEventListener('mouseleave', () => {
-      if (panel.classList.contains('hidden')) {
+    const updateButtonVisibility = () => {
+      const panelOpen = !panel.classList.contains('hidden');
+      const overCanvas = canvas.matches(':hover');
+      if (panelOpen || overCanvas) {
+        clearTimeout(hideTimer);
+        toggleBtn.classList.add('visible');
+      } else {
         hideTimer = setTimeout(() => {
           toggleBtn.classList.remove('visible');
         }, 200);
       }
-    });
-    toggleBtn.addEventListener('mouseenter', () => clearTimeout(hideTimer));
-    panel.addEventListener('mouseenter', () => clearTimeout(hideTimer));
-    panel.addEventListener('mouseleave', () => {
-      if (!canvas.matches(':hover')) {
-        hideTimer = setTimeout(() => {
-          toggleBtn.classList.remove('visible');
-        }, 200);
-      }
+    };
+    canvas.addEventListener('mouseenter', updateButtonVisibility);
+    canvas.addEventListener('mouseleave', updateButtonVisibility);
+    toggleBtn.addEventListener('click', () => {
+      panel.classList.toggle('hidden');
+      setTimeout(updateButtonVisibility, 0);
     });
 
     let simT = 0, lastTime = null;
