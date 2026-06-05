@@ -228,6 +228,11 @@
       cfg.beam   = yacht.beam;
       cfg.dist   = setSlider('dist',   yacht.beam / 2);
       cfg.height = setSlider('height', deckHeight(deckIdx));
+      /* Estimate natural GM from beam (empirical: GM ≈ 0.08 × B for motor yachts),
+         then derive natural roll period via Isohertz: T = 0.80 × B / √GM */
+      const gmEst = 0.08 * yacht.beam;
+      const tNat  = parseFloat(((0.80 * yacht.beam) / Math.sqrt(gmEst)).toFixed(1));
+      cfg.period  = setSlider('period', tNat);
     }
 
     const readout = document.getElementById('readout');
@@ -270,9 +275,13 @@
       const rollRad = angle * Math.PI / 180;
       const sideSign = cfg.side === 'ps' ? 1 : -1;
 
-      /* porthole does not tilt — it only translates vertically as the hull side rises/falls.
-         Height change = dist × sin(roll). Stars/moon at infinity: zero parallax, don't move. */
-      const horizonShift = cfg.dist * Math.sin(rollRad) * sideSign * (IR / 12);
+      /* Porthole translates vertically with roll. Both the outboard offset (dist) and the
+         height above CoG contribute:
+           Δy = dist·sin(θ)·sideSign   — dominant, same sign flip PS vs SB
+              + height·(cos(θ)−1)      — second-order, same sign for both sides
+                                           (always reduces magnitude slightly) */
+      const horizonShift = (cfg.dist * Math.sin(rollRad) * sideSign
+                          + cfg.height * (Math.cos(rollRad) - 1)) * (IR / 12);
       const horizonY = cy + horizonShift;
 
       /* apparent water surface tilt from lateral acceleration */
