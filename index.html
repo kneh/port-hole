@@ -275,14 +275,21 @@
       const rollRad = angle * Math.PI / 180;
       const sideSign = cfg.side === 'ps' ? 1 : -1;
 
-      /* Porthole translates vertically with roll. Both the outboard offset (dist) and the
-         height above CoG contribute:
-           Δy = dist·sin(θ)·sideSign   — dominant, same sign flip PS vs SB
-              + height·(cos(θ)−1)      — second-order, same sign for both sides
-                                           (always reduces magnitude slightly) */
+      /* Porthole translates vertically with roll:
+           Δy = dist·sin(θ)·sideSign + height·(cos(θ)−1)               */
       const horizonShift = (cfg.dist * Math.sin(rollRad) * sideSign
                           + cfg.height * (Math.cos(rollRad) - 1)) * (IR / 12);
-      const horizonY = cy + horizonShift;
+
+      /* Earth-curvature dip: from height h the horizon sits sqrt(2h/R) rad below
+         eye-level (UK Admiralty formula). Physically correct but tiny — only ~0.6 px
+         at 3 m and ~1.6 px at 25 m (assuming ±30° vertical FOV).
+         The porthole centre represents 0° elevation; positive dip pushes the horizon
+         below centre, revealing slightly more sky above it from a high deck. */
+      const R_EARTH = 6371000;
+      const horizonDipPx = Math.sqrt(2 * Math.max(0, cfg.height) / R_EARTH)
+                         * IR / (30 * Math.PI / 180);
+
+      const horizonY = cy + horizonShift + horizonDipPx;
 
       /* apparent water surface tilt from lateral acceleration */
       const omega = (2 * Math.PI) / cfg.period;
