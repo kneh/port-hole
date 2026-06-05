@@ -1,0 +1,12 @@
+{
+  "name": "porthole",
+  "version": "1.0.0",
+  "description": "Animated porthole with roll motion simulation",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}

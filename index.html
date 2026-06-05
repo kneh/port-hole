@@ -13,8 +13,19 @@
     html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1410; font-family: sans-serif; }
     canvas { display: block; width: 100%; height: 100%;
              -webkit-app-region: drag; app-region: drag; }
-    #toggle-btn, #panel, #readout, #offline-badge {
+    #toggle-btn, #panel, #readout, #offline-badge, #close-btn {
       -webkit-app-region: no-drag; app-region: no-drag; }
+    #close-btn {
+      position: fixed; top: 14px; left: 14px; z-index: 10; display: none;
+      background: rgba(20,15,10,0.38); border: 0.5px solid rgba(200,150,48,0.14);
+      color: rgba(200,170,100,0.38); border-radius: 6px;
+      padding: 5px 9px; font-size: 17px; line-height: 1; cursor: pointer;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    #close-btn:hover {
+      color: rgba(220,80,80,0.95); background: rgba(20,15,10,0.80);
+      border-color: rgba(200,80,80,0.45);
+    }
     #toggle-btn {
       position: fixed; top: 14px; right: 14px; z-index: 10;
       background: rgba(20,15,10,0.38); border: 0.5px solid rgba(200,150,48,0.14);
@@ -50,6 +61,7 @@
 <body>
   <canvas id="canvas"></canvas>
 
+  <button id="close-btn" title="Close">&#x2715;</button>
   <button id="toggle-btn">&#9776;</button>
 
   <div id="panel" class="hidden">
@@ -248,7 +260,17 @@
       readout.style.display = this.checked ? '' : 'none';
     });
 
-    let transparentBg = false;
+    /* auto-enable transparent mode and show close button when running in Electron */
+    const isElectron = /electron/i.test(navigator.userAgent);
+    let transparentBg = isElectron;
+    if (isElectron) {
+      document.body.style.background = 'transparent';
+      document.documentElement.style.background = 'transparent';
+      document.getElementById('transparent-bg').checked = true;
+      document.getElementById('close-btn').style.display = '';
+    }
+    document.getElementById('close-btn').addEventListener('click', () => window.close());
+
     document.getElementById('transparent-bg').addEventListener('change', function () {
       transparentBg = this.checked;
       document.body.style.background = this.checked ? 'transparent' : '';
