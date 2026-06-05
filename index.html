@@ -287,21 +287,28 @@
     const toggleBtn = document.getElementById('toggle-btn');
     document.getElementById('toggle-btn').addEventListener('click', () => panel.classList.toggle('hidden'));
 
-    /* Show menu button and keep it visible while panel is open */
+    /* Show menu button on canvas hover; hide after delay unless user reaches button/panel */
+    let hideTimer;
     canvas.addEventListener('mouseenter', () => {
+      clearTimeout(hideTimer);
       toggleBtn.classList.add('visible');
     });
     canvas.addEventListener('mouseleave', () => {
       if (panel.classList.contains('hidden')) {
-        toggleBtn.classList.remove('visible');
+        hideTimer = setTimeout(() => {
+          toggleBtn.classList.remove('visible');
+        }, 200);
       }
     });
-    /* Keep button visible while panel is open */
-    new MutationObserver(() => {
-      if (!panel.classList.contains('hidden')) {
-        toggleBtn.classList.add('visible');
+    toggleBtn.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    panel.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    panel.addEventListener('mouseleave', () => {
+      if (!canvas.matches(':hover')) {
+        hideTimer = setTimeout(() => {
+          toggleBtn.classList.remove('visible');
+        }, 200);
       }
-    }).observe(panel, { attributes: true, attributeFilter: ['class'] });
+    });
 
     let simT = 0, lastTime = null;
 
