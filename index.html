@@ -11,10 +11,11 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1410; font-family: sans-serif; }
-    canvas { display: block; width: 100%; height: 100%;
-             -webkit-app-region: drag; app-region: drag; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #drag-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;
+                    -webkit-app-region: drag; app-region: drag; pointer-events: none; }
     #toggle-btn, #panel, #readout, #offline-badge, #close-btn {
-      -webkit-app-region: no-drag; app-region: no-drag; }
+      -webkit-app-region: no-drag; app-region: no-drag; position: relative; z-index: 101; }
     #close-btn {
       position: fixed; top: 14px; left: 14px; z-index: 10; display: none;
       background: rgba(20,15,10,0.38); border: 0.5px solid rgba(200,150,48,0.14);
@@ -27,7 +28,7 @@
       border-color: rgba(200,80,80,0.45);
     }
     #toggle-btn {
-      position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 10;
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;
       background: rgba(20,15,10,0.38); border: 0.5px solid rgba(200,150,48,0.14);
       color: rgba(200,170,100,0.38); border-radius: 6px;
       padding: 5px 9px; font-size: 19px; line-height: 1; cursor: pointer;
@@ -42,12 +43,23 @@
       border-color: rgba(200,150,48,0.38);
     }
     #panel {
-      position: fixed; top: 52px; left: 50%; transform: translateX(-50%); z-index: 10;
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;
       background: rgba(14,10,6,0.92); border: 0.5px solid rgba(200,150,48,0.35);
-      border-radius: 10px; padding: 14px 16px; width: 280px;
-      transition: opacity 0.18s, transform 0.18s;
+      border-radius: 10px; padding: 14px 16px; width: 280px; max-height: 80vh;
+      overflow-y: auto; transition: opacity 0.18s, transform 0.18s;
     }
-    #panel.hidden { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-6px); }
+    #panel-close-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(20,15,10,0.38); border: 0.5px solid rgba(200,150,48,0.14);
+      color: rgba(200,170,100,0.38); border-radius: 6px;
+      padding: 3px 8px; font-size: 16px; line-height: 1; cursor: pointer;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    #panel-close-btn:hover {
+      color: rgba(200,170,100,0.82); background: rgba(20,15,10,0.80);
+      border-color: rgba(200,150,48,0.38);
+    }
+    #panel.hidden { display: none; opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-6px); }
     .panel-title { font-size: 11px; font-weight: 500; color: rgba(200,150,48,0.85); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
     .panel-section { border-top: 0.5px solid rgba(200,150,48,0.15); margin-top: 10px; padding-top: 10px; }
     .section-label { font-size: 11px; color: rgba(200,150,48,0.6); margin-bottom: 8px; }
@@ -75,11 +87,13 @@
 </head>
 <body>
   <canvas id="canvas"></canvas>
+  <div id="drag-overlay"></div>
 
   <button id="close-btn" title="Close">&#x2715;</button>
   <button id="toggle-btn">&#9776;</button>
 
   <div id="panel" class="hidden">
+    <button id="panel-close-btn" title="Close menu">×</button>
     <div class="panel-title">porthole settings</div>
 
     <div class="panel-section">
@@ -170,7 +184,7 @@
   </div>
 
   <script>
-    const APP_VERSION = '1.0.1';
+    const APP_VERSION = '1.0.2';
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -335,6 +349,12 @@
     toggleBtn.addEventListener('click', () => {
       panel.classList.toggle('hidden');
       setTimeout(updateButtonVisibility, 0);
+    });
+
+    /* close button in the menu */
+    document.getElementById('panel-close-btn').addEventListener('click', () => {
+      panel.classList.add('hidden');
+      updateButtonVisibility();
     });
 
     let simT = 0, lastTime = null;
