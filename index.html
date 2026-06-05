@@ -62,6 +62,15 @@
                text-align: center; }
     #offline-badge { position: fixed; bottom: 14px; right: 14px; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); font-size: 11px; padding: 4px 10px; border-radius: 20px; display: none; }
     #offline-badge.visible { display: block; }
+    #update-banner { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 9;
+                     background: rgba(80,140,200,0.92); border: 0.5px solid rgba(120,180,255,0.4);
+                     color: rgba(220,240,255,0.95); font-size: 12px; padding: 10px 16px; border-radius: 8px;
+                     display: none; gap: 12px; align-items: center; -webkit-app-region: no-drag; app-region: no-drag; }
+    #update-banner.visible { display: flex; }
+    #update-banner button { background: rgba(120,180,255,0.3); border: 0.5px solid rgba(180,220,255,0.5);
+                            color: rgba(220,240,255,0.95); padding: 4px 12px; border-radius: 4px; font-size: 11px;
+                            cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+    #update-banner button:hover { background: rgba(150,200,255,0.5); border-color: rgba(200,240,255,0.7); }
   </style>
 </head>
 <body>
@@ -150,6 +159,12 @@
   </div>
 
   <div id="offline-badge">offline</div>
+
+  <div id="update-banner">
+    <span>App update available</span>
+    <button id="update-reload-btn">Reload</button>
+    <button id="update-dismiss-btn">Later</button>
+  </div>
 
   <script>
     const canvas = document.getElementById('canvas');
@@ -532,7 +547,21 @@
     /* service worker */
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(console.warn);
+      /* listen for update notifications from service worker */
+      navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data.type === 'UPDATE_AVAILABLE') {
+          document.getElementById('update-banner').classList.add('visible');
+        }
+      });
     }
+
+    /* update banner handlers */
+    document.getElementById('update-reload-btn').addEventListener('click', () => {
+      window.location.reload();
+    });
+    document.getElementById('update-dismiss-btn').addEventListener('click', () => {
+      document.getElementById('update-banner').classList.remove('visible');
+    });
   </script>
 </body>
 </html>

@@ -7,15 +7,21 @@ const ASSETS = [
   './icons/icon-512.png'
 ];
 
-/* install: cache all assets */
+/* install: cache all assets; notify clients if this is an update */
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(cache => cache.addAll(ASSETS))
   );
   self.skipWaiting();
+  /* notify all clients that an update is available */
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({ type: 'UPDATE_AVAILABLE' });
+    });
+  });
 });
 
-/* activate: remove old caches */
+/* activate: remove old caches and claim all pages */
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
