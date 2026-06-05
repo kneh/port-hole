@@ -1,4 +1,4 @@
-const CACHE = 'port-light-v1';
+const CACHE = 'port-light-v2';
 const ASSETS = [
   './',
   './index.html',

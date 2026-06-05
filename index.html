@@ -150,6 +150,9 @@
       <div class="row" id="exit-app-row" style="margin-bottom:0;display:none;margin-top:8px;padding-top:8px;border-top:0.5px solid rgba(200,150,48,0.15);">
         <button id="exit-app-btn" style="flex:1;background:rgba(200,80,80,0.2);border:0.5px solid rgba(200,80,80,0.35);color:rgba(220,120,120,0.9);border-radius:5px;padding:6px;font-size:12px;cursor:pointer;">Exit App</button>
       </div>
+      <div style="margin-top:12px;padding-top:8px;border-top:0.5px solid rgba(200,150,48,0.15);font-size:10px;color:rgba(180,140,80,0.6);text-align:center;">
+        <span id="version-display">v</span>
+      </div>
     </div>
   </div>
 
@@ -167,6 +170,8 @@
   </div>
 
   <script>
+    const APP_VERSION = '1.0.1';
+
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let W, H;
@@ -562,6 +567,9 @@
     document.getElementById('update-dismiss-btn').addEventListener('click', () => {
       document.getElementById('update-banner').classList.remove('visible');
     });
+
+    /* display version */
+    document.getElementById('version-display').textContent = `v${APP_VERSION}`;
   </script>
 </body>
 </html>
